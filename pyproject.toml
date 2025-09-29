@@ -6,15 +6,18 @@ authors = [
     { name = "Your Name", email = "your@email.com" }
 ]
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.13"
 dependencies = [
     "typer",
     "rich",
     "langgraph",
     "langgraph-supervisor",
     "langgraph-swarm",
-    "langchain-openai"
+    "langchain-openai",
 ]
+
+[tool.uv]
+package = true
 
 [project.scripts]
 paircode = "paircode.cli:app"
