@@ -1,6 +1,4 @@
 import pytest
-import os
-from pathlib import Path
 from paircode.file_service import FileService
 
 

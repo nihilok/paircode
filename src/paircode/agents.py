@@ -3,6 +3,7 @@ from langgraph.prebuilt import create_react_agent
 from langgraph_swarm import create_handoff_tool, create_swarm
 from langgraph.checkpoint.memory import InMemorySaver
 from .file_service import FileService
+from .shell_service import ShellService
 
 
 def run_tests(test_file: str) -> str:
@@ -21,6 +22,7 @@ EXPLAIN_TOOL_RESULTS = (
 def create_paircode_swarm(coder_name: str, tester_name: str, supervisor_name: str = "Supervisor", base_directory: str = "."):
     model = ChatOpenAI(model="gpt-4o")
     file_service = FileService(base_directory)
+    shell_service = ShellService()
     # File tools
     def read_file(path: str) -> str:
         """Read and return the content of a file at the specified path."""
@@ -31,6 +33,9 @@ def create_paircode_swarm(coder_name: str, tester_name: str, supervisor_name: st
     def list_files(directory: str) -> str:
         """List files in the specified directory."""
         return file_service.list_files(directory)
+    def execute_in_shell(command: str) -> str:
+        """Execute a shell command and return its output."""
+        return shell_service.execute_in_shell(command)
     # Supervisor agent
     supervisor = create_react_agent(
         model,
@@ -71,7 +76,7 @@ def create_paircode_swarm(coder_name: str, tester_name: str, supervisor_name: st
     tester = create_react_agent(
         model,
         [
-            run_tests,
+            execute_in_shell,
             write_to_file,
             read_file,
             list_files,
