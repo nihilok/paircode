@@ -1,0 +1,24 @@
+[project]
+name = "paircode"
+version = "0.1.0"
+description = "A pair of AI devs at your disposal that work on code-related problems."
+authors = [
+    { name = "Your Name", email = "your@email.com" }
+]
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "typer",
+    "rich",
+    "langgraph",
+    "langgraph-supervisor",
+    "langgraph-swarm",
+    "langchain-openai"
+]
+
+[project.scripts]
+paircode = "paircode.cli:app"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+packages = ["paircode"]
