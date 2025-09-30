@@ -8,12 +8,11 @@ authors = [
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
-    "typer",
-    "rich",
-    "langgraph",
-    "langgraph-supervisor",
-    "langgraph-swarm",
-    "langchain-openai",
+    "langchain-anthropic>=0.3.21",
+    "langgraph>=0.6.8",
+    "langgraph-swarm>=0.0.14",
+    "rich>=14.1.0",
+    "typer>=0.19.2",
 ]
 
 [tool.uv]
