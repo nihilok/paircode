@@ -9,6 +9,8 @@ readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "langchain-anthropic>=0.3.21",
+    "langchain-community>=0.3.30",
+    "langchain-experimental>=0.3.4",
     "langgraph>=0.6.8",
     "langgraph-swarm>=0.0.14",
     "rich>=14.1.0",

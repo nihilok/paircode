@@ -5,7 +5,7 @@ from rich.console import Console
 from rich.prompt import Prompt
 
 from paircode.config_service import ConfigService
-from paircode.session_service import SessionService
+from paircode.multi_agent_flow import run_multi_agent_flow
 
 
 app = Typer()
@@ -25,55 +25,14 @@ def config(
 
 @app.command()
 def start():
-    """Start a paircode agent session."""
-    # Load configuration
-    config_service = ConfigService()
-    coder_name, tester_name, supervisor_name = config_service.get_agent_names()
-
+    """Start a supervisor multi-agent session."""
     # Display welcome message
-    console.print("[bold green]Welcome to PairCode![/bold green]")
     console.print(
-        f"Agents: [cyan]{coder_name}[/cyan] (coder), "
-        f"[magenta]{tester_name}[/magenta] (tester), "
-        f"[yellow]{supervisor_name}[/yellow] (supervisor)"
+        "[bold green]Welcome to PairCode! Supervisor Multi-Agent Flow.[/bold green]"
     )
-
-    # Initialize session
-    session = SessionService(coder_name, tester_name, supervisor_name)
-
-    # Get initial task
     user_task = Prompt.ask("What code-related problem should the agents solve?")
-    console.print("[bold blue]Swarm session starting...[/bold blue]")
-
-    # Process initial task
-    for event in session.send_message(user_task):
-        for agent, content, tool_explanation in session.extract_event_info(event):
-            if agent:
-                console.print(f"[bold][{agent}][/bold]", style="yellow")
-            if content:
-                console.print(content, style="white")
-            if tool_explanation:
-                console.print(tool_explanation)
-            if not agent and not content and not tool_explanation:
-                console.print(f"[dim]Raw event:[/dim] {event}")
-
-    # Multi-turn interaction loop
-    while True:
-        next_input = Prompt.ask("Enter next message (or 'exit' to quit)")
-        if next_input.strip().lower() == "exit":
-            console.print("[bold yellow]Session ended. Goodbye![/bold yellow]")
-            break
-
-        for event in session.send_message(next_input):
-            for agent, content, tool_explanation in session.extract_event_info(event):
-                if agent:
-                    console.print(f"[bold][{agent}][/bold]", style="yellow")
-                if content:
-                    console.print(content, style="white")
-                if tool_explanation:
-                    console.print(tool_explanation)
-                if not agent and not content and not tool_explanation:
-                    console.print(f"[dim]Raw event:[/dim] {event}")
+    console.print("[bold blue]Session starting...[/bold blue]")
+    run_multi_agent_flow(user_task)
 
 
 if __name__ == "__main__":
