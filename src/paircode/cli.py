@@ -1,26 +1,15 @@
+"""Command-line interface for PairCode."""
+
 from typer import Typer, Option
 from rich.console import Console
 from rich.prompt import Prompt
-import json
-from pathlib import Path
-from paircode.agents import PaircodeSwarmService
+
+from paircode.config_service import ConfigService
+from paircode.session_service import SessionService
+
 
 app = Typer()
 console = Console()
-
-CONFIG_PATH = Path.home() / ".paircode_config.json"
-
-
-def load_config():
-    if CONFIG_PATH.exists():
-        with open(CONFIG_PATH) as f:
-            return json.load(f)
-    return {}
-
-
-def save_config(config):
-    with open(CONFIG_PATH, "w") as f:
-        json.dump(config, f, indent=2)
 
 
 @app.command()
@@ -29,65 +18,63 @@ def config(
     agent_tester: str = Option(None, help="Name for the tester agent"),
 ):
     """Configure agent names and settings."""
-    config = load_config()
-    if agent_coder:
-        config["agent_coder"] = agent_coder
-    if agent_tester:
-        config["agent_tester"] = agent_tester
-    save_config(config)
+    config_service = ConfigService()
+    config_service.update(agent_coder=agent_coder, agent_tester=agent_tester)
     console.print("[green]Configuration saved![/green]")
 
 
 @app.command()
 def start():
     """Start a paircode agent session."""
-    config = load_config()
+    # Load configuration
+    config_service = ConfigService()
+    coder_name, tester_name, supervisor_name = config_service.get_agent_names()
+
+    # Display welcome message
     console.print("[bold green]Welcome to PairCode![/bold green]")
-    coder_name = config.get("coder_name", "Alice")
-    tester_name = config.get("tester_name", "Bob")
-    supervisor_name = config.get("supervisor_name", "Chief")
     console.print(
-        f"Agents: [cyan]{coder_name}[/cyan] (coder), [magenta]{tester_name}[/magenta] (tester), [yellow]{supervisor_name}[/yellow] (supervisor)"
+        f"Agents: [cyan]{coder_name}[/cyan] (coder), "
+        f"[magenta]{tester_name}[/magenta] (tester), "
+        f"[yellow]{supervisor_name}[/yellow] (supervisor)"
     )
-    swarm = PaircodeSwarmService(coder_name, tester_name, supervisor_name)
+
+    # Initialize session
+    session = SessionService(coder_name, tester_name, supervisor_name)
+
+    # Get initial task
     user_task = Prompt.ask("What code-related problem should the agents solve?")
     console.print("[bold blue]Swarm session starting...[/bold blue]")
-    config_obj = {"configurable": {"thread_id": "1"}}
 
-    def print_streamed_event(event):
-        # Print agent name and latest message if available
-        if isinstance(event, dict):
-            agent = event.get("active_agent") or event.get("agent")
-            messages = event.get("messages")
+    # Process initial task
+    for event in session.send_message(user_task):
+        for agent, content, tool_explanation in session.extract_event_info(event):
             if agent:
-                console.print(f"[bold][{agent}][/bold]")
-            if messages:
-                last_msg = (
-                    messages[-1] if isinstance(messages, list) and messages else None
-                )
-                if last_msg:
-                    if isinstance(last_msg, dict):
-                        role = last_msg.get("role", "")
-                        content = last_msg.get("content", "")
-                        console.print(f"[{role}] {content}")
-                    else:
-                        console.print(str(last_msg))
-        else:
-            console.print(str(event))
+                console.print(f"[bold][{agent}][/bold]", style="yellow")
+            if content:
+                console.print(content, style="white")
+            if tool_explanation:
+                console.print(tool_explanation)
+            if not agent and not content and not tool_explanation:
+                console.print(f"[dim]Raw event:[/dim] {event}")
 
-    # First turn (streamed)
-    console.print("[bold]Swarm output (streamed):[/bold]")
-    for event in swarm.stream(
-        {"messages": [{"role": "user", "content": user_task}]}, config_obj
-    ):
-        print_streamed_event(event)
-    # Optionally, allow multi-turn interaction
+    # Multi-turn interaction loop
     while True:
         next_input = Prompt.ask("Enter next message (or 'exit' to quit)")
         if next_input.strip().lower() == "exit":
+            console.print("[bold yellow]Session ended. Goodbye![/bold yellow]")
             break
-        console.print("[bold]Swarm output (streamed):[/bold]")
-        for event in swarm.stream(
-            {"messages": [{"role": "user", "content": next_input}]}, config_obj
-        ):
-            print_streamed_event(event)
+
+        for event in session.send_message(next_input):
+            for agent, content, tool_explanation in session.extract_event_info(event):
+                if agent:
+                    console.print(f"[bold][{agent}][/bold]", style="yellow")
+                if content:
+                    console.print(content, style="white")
+                if tool_explanation:
+                    console.print(tool_explanation)
+                if not agent and not content and not tool_explanation:
+                    console.print(f"[dim]Raw event:[/dim] {event}")
+
+
+if __name__ == "__main__":
+    app()

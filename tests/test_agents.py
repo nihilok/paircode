@@ -1,40 +1,79 @@
 import pytest
-import logging
-from src.paircode.agents import write_code, write_tests, run_tests, create_paircode_swarm
-
-
-# Utility to capture logging output
-def capture_logged_output(swarm_app, message):
-    with pytest.raises(AssertionError):  # We expect something to be logged, so we make sure no success is claimed.
-        with pytest.fail_on_log_level(logging.INFO) as log_capture:
-            swarm_app.logging_function(message)
-        assert "User Update:" in log_capture.text, "Log capture did not contain expected user update message."
-
-
-# Existing test cases
-def test_write_code():
-    task = "Implement a sorting algorithm"
-    expected_output = "Code for: Implement a sorting algorithm\n[def foo(): pass]"
-    assert write_code(task) == expected_output
-
-
-def test_write_tests():
-    task = "Test sorting algorithm"
-    expected_output = "Tests for: Test sorting algorithm\n[def test_foo(): assert True]"
-    assert write_tests(task) == expected_output
+from unittest.mock import Mock, patch, MagicMock
+from src.paircode.agents import PaircodeSwarmService, run_tests
 
 
 def test_run_tests():
-    code = "def foo(): pass"
-    tests = "def test_foo(): assert True"
-    expected_output = "All tests passed!"
-    assert run_tests(code, tests) == expected_output
+    """Test the run_tests function returns expected message."""
+    test_file = "test_example.py"
+    expected_output = "I don't have the ability to execute code. Please run the tests in your local environment."
+    assert run_tests(test_file) == expected_output
 
 
-def test_create_paircode_swarm():
-    # This is a placeholder to ensure the function runs without error
-    try:
-        swarm_app = create_paircode_swarm("Coder", "Tester")
-        capture_logged_output(swarm_app, "Test message.")
-    except Exception as e:
-        pytest.fail(f"Swarm creation failed with exception: {e}")
+def test_paircode_swarm_service_initialization():
+    """Test that PaircodeSwarmService initializes correctly."""
+    with patch('src.paircode.agents.ChatAnthropic'):
+        service = PaircodeSwarmService(
+            coder_name="Alice",
+            tester_name="Bob",
+            supervisor_name="Chief",
+            base_directory="."
+        )
+        
+        assert service.coder is not None
+        assert service.tester is not None
+        assert service.supervisor is not None
+        assert service.swarm is not None
+        assert service.app is not None
+        assert service.checkpointer is not None
+
+
+def test_paircode_swarm_service_default_supervisor():
+    """Test that PaircodeSwarmService uses default supervisor name."""
+    with patch('src.paircode.agents.ChatAnthropic'):
+        service = PaircodeSwarmService(
+            coder_name="Alice",
+            tester_name="Bob"
+        )
+        
+        # The service should be created successfully with default supervisor name
+        assert service is not None
+
+
+def test_paircode_swarm_service_stream_method():
+    """Test that the stream method exists and is callable."""
+    with patch('src.paircode.agents.ChatAnthropic'):
+        service = PaircodeSwarmService(
+            coder_name="Alice",
+            tester_name="Bob",
+            supervisor_name="Chief"
+        )
+        
+        # Check that stream method exists
+        assert hasattr(service, 'stream')
+        assert callable(service.stream)
+
+
+@patch('src.paircode.agents.ChatAnthropic')
+def test_paircode_swarm_service_with_custom_base_directory(mock_anthropic):
+    """Test that PaircodeSwarmService accepts custom base directory."""
+    service = PaircodeSwarmService(
+        coder_name="Alice",
+        tester_name="Bob",
+        supervisor_name="Chief",
+        base_directory="/custom/path"
+    )
+    
+    assert service.file_service is not None
+
+
+def test_paircode_swarm_service_has_logging_function():
+    """Test that the service has a logging function attached."""
+    with patch('src.paircode.agents.ChatAnthropic'):
+        service = PaircodeSwarmService(
+            coder_name="Alice",
+            tester_name="Bob"
+        )
+        
+        assert hasattr(service.app, 'logging_function')
+        assert callable(service.app.logging_function)
