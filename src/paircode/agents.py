@@ -14,8 +14,7 @@ def run_tests(test_file: str) -> str:
 
 
 EXPLAIN_TOOL_RESULTS = (
-    "Whenever you reference the result of a tool call, always explain it to the user in plain language, "
-    "since the user cannot see the raw tool output. Always continue from where you left off in the workflow. Do not repeat previous steps or explanations."
+    "Try not to use more than 3 nodes in a row without checking in with another agent. "
 )
 
 
@@ -43,7 +42,7 @@ class PaircodeSwarmService:
             self.model,
             [
                 HandoffTools.hand_off_to_coder(coder_name),
-                HandoffTools.hand_off_to_supervisor(supervisor_name),
+                HandoffTools.hand_off_to_tester(tester_name),
                 HandoffTools.end_session,
                 FileSystemTools.read_file,
             ],
@@ -52,8 +51,9 @@ class PaircodeSwarmService:
                 f"You manage a coder ({coder_name}) and a tester ({tester_name}). "
                 "Assign work by handing off to the appropriate agent. "
                 "Coordinate the workflow: agree on a test plan, have the coder write code, the tester write and run tests, and agree on a definition of done. "
-                "Always use handoff tools to transfer control. "
+                "Always use handoff tools to transfer control. Try not to use more than 3 nodes in a row without checking in with another agent. "
                 "Only call one handoff tool per turn. Never call multiple handoff tools in a single turn. "
+                f"{EXPLAIN_TOOL_RESULTS}"
                 "When the definition of done is met, call the end_session tool to finish the workflow."
             ),
             name=supervisor_name,
@@ -73,6 +73,7 @@ class PaircodeSwarmService:
                 f"You are not able to run tests or execute shell commands, so hand off to {tester_name} the tester when "
                 "tests need to be run. You must check in with the supervisor for coordination. "
                 "Only call one handoff tool per turn. Never call multiple handoff tools in a single turn. "
+                f"{EXPLAIN_TOOL_RESULTS}"
             ),
             name=coder_name,
         )
@@ -93,6 +94,7 @@ class PaircodeSwarmService:
                 "using execute_in_shell. The coder does not have this ability, so you can help by running tests and reporting results. "
                 "You oversee the quality of the code and ensure it meets the definition of done. Check in with the supervisor for coordination. "
                 "Only call one handoff tool per turn. Never call multiple handoff tools in a single turn. "
+                f"{EXPLAIN_TOOL_RESULTS}"
             ),
             name=tester_name,
         )

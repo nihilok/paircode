@@ -1,6 +1,9 @@
 """Session service for managing PairCode swarm sessions."""
 
 from typing import Generator, Dict, Any, Optional
+
+from langchain_core.runnables import RunnableConfig
+
 from paircode.agents import PaircodeSwarmService
 
 
@@ -19,7 +22,11 @@ class SessionService:
         self.tester_name = tester_name
         self.supervisor_name = supervisor_name
         self.swarm = PaircodeSwarmService(coder_name, tester_name, supervisor_name)
-        self.config = {"configurable": {"thread_id": "1"}}
+        self.config = RunnableConfig(
+            recursion_limit=10,  # Visit up to 10 nodes; beyond that, RecursionError will occur
+            configurable={"thread_id": "1"},  # Set the thread ID
+            tags=["my-tag"],  # Tag
+        )
 
     def send_message(self, message: str) -> Generator[Dict[str, Any], None, None]:
         """Send a message to the swarm and stream responses.
